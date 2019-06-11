@@ -22,7 +22,25 @@ def scrape_soundcloud(url):
 def scrape_bandcamp(url):
     pass
 def scrape_spotify(url):
-    pass
+    resp = requests.get(url)
+    soup = BeautifulSoup(resp.text, 'html.parser')
+    song_json = json.loads(soup.find('script', {'id': 'resource'}).text)
+    track_items = song_json['tracks']['items']
+    tracks_to_return = []
+    for item in track_items:
+        track_to_add = {}
+        #artist will be the first artist in this list
+        item_keys = item.keys()
+        if 'artists' in item_keys:
+            track_to_add['artist'] = item['artists'][0]['name']
+            track_to_add['song'] = item['name']
+            tracks_to_return.append(track_to_add)
+        elif 'track' in item_keys: ## This is probably a playlist
+            track_to_add['artist'] = item['track']['artists'][0]['name']
+            track_to_add['song'] = item['track']['name']
+            tracks_to_return.append(track_to_add)
+
+    return tracks_to_return
 def scrape_apple(url):
     pass
 
@@ -64,7 +82,7 @@ class ScrapeSession:
         return song_endpoints
     
     def get_song_data(self, song_list):
-        print(song_list)
+        song_data = []
         for endpoint in song_list:
             soup = BeautifulSoup(requests.get(endpoint).text, 'html.parser')
             iframes = soup.find_all('iframe')
@@ -73,30 +91,10 @@ class ScrapeSession:
                 if 'src' in iframe.attrs:
                     url_match = check_iframe_url(iframe['src'])
                     if url_match:
-                        endpoints_with_domain.append((url_match, iframe['src']))
-            
-                # iframe_soup = BeautifulSoup(requests.get(iframe['src']).content, 'html.parser')
-                # print(iframe_soup.prettify())
-        
-
-# largeheart = 'http://feeds.feedburner.com/largeheartedboy'
-# killing_moon = "http://www.killing-moon.com/feed"
-# songs = []
-
-# km_parse = feedparser.parse(killing_moon)
-# link = km_parse['entries'][1]['link']
-# print(link)
-
-# km_page = requests.get(link)
-# km_soup = BeautifulSoup(km_page.content, 'html.parser')
-# iframe = km_soup.find('iframe')
-# iframe_soup = BeautifulSoup(requests.get(iframe['src']).content, 'html.parser')
-# song_json = json.loads(iframe_soup.find('script', {'id': 'resource'}).text)
-# if song_json['album']['album_type'] == 'single':
-#     song = song_json['album']['name']
-#     artist = song_json['album']['artists'][0]['name']
-#     songs.append({'song': song, 'artist': artist})
-# else: 
-#     print(f'Not a single')
-
-# print(songs)
+                        endpoints_with_domain.append((url_match.group(), iframe['src']))
+            for endpoint in endpoints_with_domain[:1]:
+                # print(endpoint[1])
+                scrape_result = domain_to_scraper[endpoint[0]](endpoint[1])
+                if scrape_result:
+                    song_data += scrape_result
+        return song_data
