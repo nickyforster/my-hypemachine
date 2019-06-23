@@ -1,2 +1,3 @@
 .vscode
 py_scripts/gmusic_config.py
+__pycache__
