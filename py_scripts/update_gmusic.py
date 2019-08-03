@@ -3,7 +3,7 @@ from gmusic_api import GmSession
 import time
 
 scraping = ScrapeSession()
-song_links = scraping.get_song_links()
+song_links = scraping.get_song_links_from_feed()
 song_data_list = scraping.get_song_data(song_links)
 
 session = GmSession()
